@@ -64,9 +64,6 @@ class ServerInstance:
         
         @param pinNumber - pin to read input from
         """
-        #check to make sure pin is still in input mode
-        if self.pins[pinNumber][0] == "output":
-            self.connection.send("STOP!") #stop input threads in the phone app
         output = str(GPIO.input(pinNumber)) + "," + str(pinNumber)
         while len(output) < 5:
             output += " "
