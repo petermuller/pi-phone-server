@@ -9,8 +9,13 @@ import sys
 from ServerInstance import ServerInstance
 
 def main():
+    """
+    Run the TCP server
+    """
     #Initialize the server
+    print "Starting server"
     try:
+        print "Initializing socket"
         s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         s.bind(('',9001)) #Tuple argument (HOST,PORT)
@@ -22,6 +27,7 @@ def main():
         #sys.exit()
 
     try:
+        print "Now listening for connections"
         while True: #trying to get signal from client
             connection, address = s.accept()
             connection.send("yes!!")
@@ -37,6 +43,7 @@ def main():
                     pass
             connection.close()
     except KeyboardInterrupt:
+        print "Cleaning up server"
         si.finish()
         s.close()
         sys.exit()
@@ -64,4 +71,7 @@ def parseInput(data,si):
     
 
 if __name__ == "__main__":
+    """
+    Run server if module is run like a program.
+    """
     main()

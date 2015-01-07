@@ -2,9 +2,12 @@
 ServerInstance.py
 
 A class to contain the actions that will control the Raspberry Pi.
+If not on a linux system, then it will not try to import the GPIO libary
 """
-
-import RPi.GPIO as GPIO
+import sys
+isLinux = 'linux' in sys.platform
+if isLinux:
+    import RPi.GPIO as GPIO
 
 class ServerInstance:
     """
@@ -26,7 +29,8 @@ class ServerInstance:
         @param connection - TCP connection to phone app
         """
         self.connection = connection
-        GPIO.setmode(GPIO.BOARD)
+        if isLinux:
+            GPIO.setmode(GPIO.BOARD)
         
     def pinMode(self,pinNumber,mode):
         """
@@ -39,11 +43,15 @@ class ServerInstance:
             if pinNumber in self.pins:
                 self.pins[pinNumber][1].stop()
             self.pins[pinNumber] = ("input")
-            GPIO.setup(pinNumber,GPIO.IN)
+            if isLinux:
+                GPIO.setup(pinNumber,GPIO.IN)
         else: # mode == 'o'
-            GPIO.setup(pinNumber,GPIO.OUT)
-            self.pins[pinNumber] = ("output",GPIO.PWM(pinNumber,self._FREQ))
-            self.pins[pinNumber][1].start(0)
+            if isLinux:
+                GPIO.setup(pinNumber,GPIO.OUT)
+                self.pins[pinNumber] = ("output",GPIO.PWM(pinNumber,self._FREQ))
+                self.pins[pinNumber][1].start(0)
+            else:
+                self.pins[pinNumber] = ("output")
     
     def setOut(self,pinNumber,percent):
         """
@@ -53,7 +61,8 @@ class ServerInstance:
         @param percent - percent duty cycle to set average voltage
         """
         try:
-            self.pins[pinNumber][1].ChangeDutyCycle(float(percent))
+            if isLinux:
+                self.pins[pinNumber][1].ChangeDutyCycle(float(percent))
         except ValueError:
             #only happens when commands are flushed incorrectly
             pass
@@ -67,7 +76,10 @@ class ServerInstance:
         #check to make sure pin is still in input mode
         if self.pins[pinNumber][0] == "output":
             self.connection.send("STOP!") #stop input threads in the phone app
-        output = str(GPIO.input(pinNumber)) + "," + str(pinNumber)
+        if isLinux:
+            output = str(GPIO.input(pinNumber)) + "," + str(pinNumber)
+        else:
+            output = "1,11"
         while len(output) < 5:
             output += " "
         self.connection.send(output)
@@ -78,6 +90,7 @@ class ServerInstance:
         Resets the board for the next connection
         """
         try:
-            GPIO.cleanup()
+            if isLinux:
+                GPIO.cleanup()
         except:
             pass #for use when server is started and stopped without connection
