@@ -41,7 +41,8 @@ class ServerInstance:
         """
         if mode == 'i':
             if pinNumber in self.pins:
-                self.pins[pinNumber][1].stop()
+                if isLinux:
+                    self.pins[pinNumber][1].stop()
             self.pins[pinNumber] = ("input")
             if isLinux:
                 GPIO.setup(pinNumber,GPIO.IN)
