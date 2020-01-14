@@ -1,77 +1,193 @@
+#!/usr/bin/env python3
 """
 PiServer.py
 
-Listens for communications and feeds read data back to the program.
+Listens for incoming connections and orchestrates the server commands.
 """
 
-import socket
-import sys
-from ServerInstance import ServerInstance
+from flask import Flask
+from BoardController import BoardController
+from constants import *
 
-def main():
-    """
-    Run the TCP server
-    """
-    #Initialize the server
-    print "Starting server"
-    try:
-        print "Initializing socket"
-        s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-        s.bind(('',9001)) #Tuple argument (HOST,PORT)
-        s.listen(1) #limit number of concurrent connections to 1
-    except socket.error,msg:
-        print "Error: " + str(msg[0]) + ": " +msg[1]
-        print "Please restart the server."
-        print "Exiting"
-        #sys.exit()
+app = Flask(__name__)
+bc = BoardController()
 
-    try:
-        print "Now listening for connections"
-        while True: #trying to get signal from client
-            connection, address = s.accept()
-            connection.send("yes!!")
-            si = ServerInstance(connection) #turn on the Pi GPIO
-            while True: #once connected
-                try:
-                    data = connection.recv(10) #TODO Determine space needed
-                    parseInput(data,si)
-                    if not data:
-                        break
-                except socket.error: #on phone disconnect
-                    #si.finish() #<-- Might be causing some bugs
-                    pass
-            connection.close()
-    except KeyboardInterrupt:
-        print "Cleaning up server"
-        si.finish()
-        s.close()
-        sys.exit()
-            
+def validate_pin(pin):
+  if pin not in VALID_PINS:
+    raise ValueError(f"Pin {pin} is not in the list of valid pins: {VALID_PINS}")
 
-def parseInput(data,si):
-    """
-    Processes the data so that operations can be done on the Raspberry Pi.
+@app.route("/")
+def hello_world():
+  return "Server is on"
 
-    @param data - the data to interpret into a command
-    @param si - ServerInstance class for GPIO and phone communication
-    @pre - All data is formatted into 3 sections, separated by commas.
-    """
-    args = data.strip().split(',')
-    print args
-    if args[0] == "set": #set input or output
-        si.pinMode(int(args[1]),args[2])
-    elif args[0] == "volt": #set voltage on output pins
-        si.setOut(int(args[1]),args[2])
-    elif args[0] == "readIn":
-        si.readIn(int(args[1])) #read voltage from specified pin
-    
-    else:
-        pass
-    
+@app.route("/set-pin-mode/<int:pin>/<string:mode>")
+def set_pin_mode(pin, mode):
+  """
+  Sets GPIO pin as either an input or output pin.
+  An input pin is one that detects logical high or low values.
+  An output pin is one that produces a variable average voltage with
+    pulse width modulation (PWM).
 
+  Parameters
+  ----------
+  pin: int
+    The pin number as defined by the Raspberry Pi GPIO reference
+  mode: str
+    The pin mode. Can be either 'input' or 'output'
+
+  Returns
+  -------
+  dict
+  """
+  validate_pin(pin)
+  if mode not in VALID_MODES:
+    raise ValueError(f"Mode {mode} not in valid modes: {VALID_MODES}")
+  pin_mode = bc.set_pin_mode(pin, MODE_MAP[mode])
+  return {
+    'pin': pin,
+    'mode': pin_mode
+  }
+
+@app.route("/get-pin-mode/<int:pin>")
+def get_pin_mode(pin):
+  """
+  Gets the GPIO pin configuration for the specified pin
+
+  Parameters
+  ----------
+  pin: int
+    The pin number as defined by the Raspberry Pi GPIO reference
+
+  Returns
+  -------
+  dict
+  """
+  validate_pin(pin)
+  mode = bc.get_pin_mode(pin)
+  return {
+    'pin': pin,
+    'mode': mode
+  }
+
+@app.route("/set-pin-pwm/<int:pin>/<float:duty>")
+@app.route("/set-pin-pwm/<int:pin>/<float:duty>/<float:freq>")
+def set_pin_pwm(pin, duty, freq=100):
+  """
+  Sets the PWM config for an output pin
+
+  Parameters
+  ----------
+  pin: int
+    The pin number as defined by the Raspberry Pi GPIO reference
+  duty: float
+    The duty cycle of the PWM. Must be value constrained to 0.0 <= n <= 100.0
+  freq: float, optional
+    The PWM frequency, in Hertz. Must be value greater than 0.0.
+
+  Returns
+  -------
+  dict
+  """
+  validate_pin(pin)
+  duty, freq = bc.set_pin_pwm(pin, duty, freq)
+  return {
+    'pin': pin,
+    'duty': duty,
+    'freq': freq
+  }
+
+@app.route("/get-pin-pwm/<int:pin>")
+def get_pin_pwm(pin):
+  """
+  Gets the PWM config for an output pin
+
+  Parameters
+  ----------
+  pin: int
+    The pin number as defined by the Raspberry Pi GPIO reference
+
+  Returns
+  -------
+  dict
+  """
+  validate_pin(pin)
+  duty, freq = bc.get_pin_pwm(pin)
+  return {
+    'pin': pin,
+    'duty': duty,
+    'freq': freq
+  }
+
+@app.route("/set-pin-value/<int:pin>/<int:value>")
+def set_pin_value(pin, value):
+  """
+  Sets the value, either "HIGH" or "LOW," for an output pin.
+
+  Parameters
+  ----------
+  pin: int
+    The pin number as defined by the Raspberry Pi GPIO reference
+  value: int
+    The HIGH or LOW value to set the pin
+
+  Returns
+  -------
+  dict
+  """
+  validate_pin(pin)
+  if not bc.get_pin_mode(pin) == OUT:
+    raise RuntimeError(f"Pin {pin} is not in OUT mode")
+  if not value in VALID_VOLTAGES:
+    raise ValueError(f"Value {value} not in valid voltages: {VALID_VOLTAGES}")
+  return {
+    'pin': pin,
+    'value': bc.set_pin_value(pin, value)
+  }
+
+@app.route("/get-pin-value/<int:pin>")
+def get_pin_value(pin):
+  """
+  Gets the value, either "HIGH" or "LOW," for an input pin.
+
+  Parameters
+  ----------
+  pin: int
+    The pin number as defined by the Raspberry Pi GPIO reference
+
+  Returns
+  -------
+  dict
+  """
+  validate_pin(pin)
+  if not bc.get_pin_mode(pin) == IN:
+    raise RuntimeError(f"Pin {pin} is not in IN mode")
+  return {
+    'pin': pin,
+    'value': bc.get_pin_value(pin)
+  }
+
+@app.errorhandler(NotImplementedError)
+def handle_not_implemented_error(e):
+  return {
+      "Error": "Method not implemented",
+      "Message": str(e)
+    }, 501
+
+@app.errorhandler(ValueError)
+def handle_value_error(e):
+  return {
+      "Error": "Value failed validation",
+      "Message": str(e)
+    }, 400
+
+@app.errorhandler(RuntimeError)
+def handle_value_error(e):
+  return {
+      "Error": "Method and pin mode do not match",
+      "Message": str(e)
+    }, 400
+
+# Run the server. Flask will default to port 5000.
 if __name__ == "__main__":
-    """
-    Run server if module is run like a program.
-    """
-    main()
+  app.run(debug = True,
+          host = "0.0.0.0")
