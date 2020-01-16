@@ -5,7 +5,7 @@ PiServer.py
 Listens for incoming connections and orchestrates the server commands.
 """
 
-from flask import Flask
+from flask import Flask, jsonify
 from BoardController import BoardController
 from constants import *
 
@@ -14,13 +14,13 @@ bc = BoardController()
 
 def validate_pin(pin):
   if pin not in VALID_PINS:
-    raise ValueError(f"Pin {pin} is not in the list of valid pins: {VALID_PINS}")
+    raise ValueError("Pin {} is not in the list of valid pins: {}".format(pin, VALID_PINS))
 
 @app.route("/")
 def hello_world():
-  return "Server is on"
+  return jsonify({"message": "Server is on"})
 
-@app.route("/set-pin-mode/<int:pin>/<string:mode>")
+@app.route("/set-pin-mode/<int:pin>/<string:mode>", methods=["POST"])
 def set_pin_mode(pin, mode):
   """
   Sets GPIO pin as either an input or output pin.
@@ -41,14 +41,14 @@ def set_pin_mode(pin, mode):
   """
   validate_pin(pin)
   if mode not in VALID_MODES:
-    raise ValueError(f"Mode {mode} not in valid modes: {VALID_MODES}")
+    raise ValueError("Mode {} not in valid modes: {}".format(mode, VALID_MODES))
   pin_mode = bc.set_pin_mode(pin, MODE_MAP[mode])
-  return {
+  return jsonify({
     'pin': pin,
-    'mode': pin_mode
-  }
+    'mode': MODE_MAP[pin_mode]
+  })
 
-@app.route("/get-pin-mode/<int:pin>")
+@app.route("/get-pin-mode/<int:pin>", methods=["GET"])
 def get_pin_mode(pin):
   """
   Gets the GPIO pin configuration for the specified pin
@@ -64,13 +64,13 @@ def get_pin_mode(pin):
   """
   validate_pin(pin)
   mode = bc.get_pin_mode(pin)
-  return {
+  return jsonify({
     'pin': pin,
-    'mode': mode
-  }
+    'mode': MODE_MAP[mode]
+  })
 
-@app.route("/set-pin-pwm/<int:pin>/<float:duty>")
-@app.route("/set-pin-pwm/<int:pin>/<float:duty>/<float:freq>")
+@app.route("/set-pin-pwm/<int:pin>/<float:duty>", methods=["POST"])
+@app.route("/set-pin-pwm/<int:pin>/<float:duty>/<float:freq>", methods=["POST"])
 def set_pin_pwm(pin, duty, freq=100):
   """
   Sets the PWM config for an output pin
@@ -90,13 +90,13 @@ def set_pin_pwm(pin, duty, freq=100):
   """
   validate_pin(pin)
   duty, freq = bc.set_pin_pwm(pin, duty, freq)
-  return {
+  return jsonify({
     'pin': pin,
     'duty': duty,
     'freq': freq
-  }
+  })
 
-@app.route("/get-pin-pwm/<int:pin>")
+@app.route("/get-pin-pwm/<int:pin>", methods=["GET"])
 def get_pin_pwm(pin):
   """
   Gets the PWM config for an output pin
@@ -112,13 +112,13 @@ def get_pin_pwm(pin):
   """
   validate_pin(pin)
   duty, freq = bc.get_pin_pwm(pin)
-  return {
+  return jsonify({
     'pin': pin,
     'duty': duty,
     'freq': freq
-  }
+  })
 
-@app.route("/set-pin-value/<int:pin>/<int:value>")
+@app.route("/set-pin-value/<int:pin>/<int:value>", methods=["POST"])
 def set_pin_value(pin, value):
   """
   Sets the value, either "HIGH" or "LOW," for an output pin.
@@ -128,7 +128,7 @@ def set_pin_value(pin, value):
   pin: int
     The pin number as defined by the Raspberry Pi GPIO reference
   value: int
-    The HIGH or LOW value to set the pin
+    The HIGH (1) or LOW (0) value to set the pin
 
   Returns
   -------
@@ -136,15 +136,15 @@ def set_pin_value(pin, value):
   """
   validate_pin(pin)
   if not bc.get_pin_mode(pin) == OUT:
-    raise RuntimeError(f"Pin {pin} is not in OUT mode")
+    raise RuntimeError("Pin {} is not in OUT mode".format(pin))
   if not value in VALID_VOLTAGES:
-    raise ValueError(f"Value {value} not in valid voltages: {VALID_VOLTAGES}")
-  return {
+    raise ValueError("Value {} not in valid voltages: {}".format(value, VALID_VOLTAGES))
+  return jsonify({
     'pin': pin,
     'value': bc.set_pin_value(pin, value)
-  }
+  })
 
-@app.route("/get-pin-value/<int:pin>")
+@app.route("/get-pin-value/<int:pin>", methods=["GET"])
 def get_pin_value(pin):
   """
   Gets the value, either "HIGH" or "LOW," for an input pin.
@@ -160,32 +160,32 @@ def get_pin_value(pin):
   """
   validate_pin(pin)
   if not bc.get_pin_mode(pin) == IN:
-    raise RuntimeError(f"Pin {pin} is not in IN mode")
-  return {
+    raise RuntimeError("Pin {} is not in IN mode".format(pin))
+  return jsonify({
     'pin': pin,
     'value': bc.get_pin_value(pin)
-  }
+  })
 
 @app.errorhandler(NotImplementedError)
 def handle_not_implemented_error(e):
-  return {
+  return jsonify({
       "Error": "Method not implemented",
       "Message": str(e)
-    }, 501
+    }), 501
 
 @app.errorhandler(ValueError)
 def handle_value_error(e):
-  return {
+  return jsonify({
       "Error": "Value failed validation",
       "Message": str(e)
-    }, 400
+    }), 400
 
 @app.errorhandler(RuntimeError)
 def handle_value_error(e):
-  return {
+  return jsonify({
       "Error": "Method and pin mode do not match",
       "Message": str(e)
-    }, 400
+    }), 400
 
 # Run the server. Flask will default to port 5000.
 if __name__ == "__main__":

@@ -39,7 +39,10 @@ class BoardController:
     Destructor that cleans up any remaining GPIO configurations
     """
     if isRasPi:
-      GPIO.cleanup()
+      try:
+        GPIO.cleanup()
+      except:
+        pass
 
   def set_pin_mode(self, pin, mode):
     """

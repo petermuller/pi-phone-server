@@ -6,8 +6,9 @@ Server for GPIO Controller phone applications
 
 1. Copy the Python files (.py) to your Raspberry Pi
 2. Ensure your Raspberry Pi distro is up to date (# yum/apt-get upgrade)
-3. As root, run the command "python PiServer.py"
-4. Use `curl` commands to test the server until the phone applications are updated to use the new implementation. Example: `curl https://localhost:5000/get-pin-value/7`
+3. Install python3 and python3-flask
+4. As root, run the command "python PiServer.py"
+5. Use `curl` commands to test the server until the phone applications are updated to use the new implementation. Example: `curl -X GET http://localhost:5000/get-pin-value/7` or `curl -X POST http://localhost:5000/set-pin-value/7/1`
 
 ## New to Version 2
 
