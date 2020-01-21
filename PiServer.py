@@ -6,10 +6,12 @@ Listens for incoming connections and orchestrates the server commands.
 """
 
 from flask import Flask, jsonify
+from flask_cors import CORS
 from BoardController import BoardController
 from constants import *
 
 app = Flask(__name__)
+CORS(app)
 bc = BoardController()
 
 def validate_pin(pin):
@@ -69,7 +71,7 @@ def set_pin_mode(pin, mode):
   pin: int
     The pin number as defined by the Raspberry Pi GPIO reference
   mode: str
-    The pin mode. Can be either 'input' or 'output'
+    The pin mode. Can be either 'IN' or 'OUT'
 
   Returns
   -------
@@ -165,7 +167,7 @@ def set_pin_value(pin, value):
   pin: int
     The pin number as defined by the Raspberry Pi GPIO reference
   value: int
-    The HIGH (1) or LOW (0) value to set the pin
+    The 1 (HIGH) or 0 (LOW) value to set the pin
 
   Returns
   -------
