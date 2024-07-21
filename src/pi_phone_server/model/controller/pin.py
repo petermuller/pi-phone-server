@@ -1,5 +1,6 @@
 from collections import namedtuple
 from enum import IntEnum
+from typing import Any
 
 from pi_phone_server.exception.exceptions import InvalidOperationError, InvalidPinError
 
@@ -23,28 +24,16 @@ class Pin:
 
     def __init__(self,
                  pin_id: int,
+                 gpio: Any,
                  mode: PinMode = PinMode.INPUT,
-                 is_pi: bool = True,
                  ):
         if pin_id not in VALID_PINS:
             raise InvalidPinError(f"Pin '{pin_id}' is not valid")
-        if is_pi:
-            import RPi.GPIO as GPIO
-            self._gpio = GPIO
-        else:
-            from pi_phone_server.model.controller.mock_gpio import GPIO
-            self._gpio = GPIO
+        self._gpio = gpio
         self._pin_id = pin_id
         self._mode = mode
         self._voltage = None
-        self._gpio.setmode(GPIO.BOARD)
         self._gpio.setup(self._pin_id, self._mode)
-
-    def __del__(self):
-        try:
-            self._gpio.cleanup()
-        except:
-            pass
 
     def get_summary(self) -> PinSummary:
         return PinSummary(

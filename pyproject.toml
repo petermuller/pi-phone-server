@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pi-phone-server"
 version = "3.0.0"
 dependencies = [
+    "click",
     "fastapi",
     "uvicorn"
 ]
@@ -21,11 +22,16 @@ keywords = ["raspberrypi", "raspberry", "pi", "server"]
 [project.optional-dependencies]
 test = [
     "coverage",
-    "pytest"
+    "pytest",
+    "pytest-xprocess",
+    "requests"
 ]
 raspi = [
     "RPi.GPIO"
 ]
+
+[project.scripts]
+run-server = "pi_phone_server.run:run"
 
 [project.urls]
 Repository = "https://github.com/petermuller/pi-phone-server"
