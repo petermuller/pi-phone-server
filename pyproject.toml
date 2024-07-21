@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pi-phone-server"
+version = "3.0.0"
+dependencies = [
+    "fastapi",
+    "uvicorn"
+]
+requires-python = ">=3.10"
+authors = [
+    {name = "Peter Muller"}
+]
+description = "REST server for interacting with Raspberry Pi GPIO pins"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["raspberrypi", "raspberry", "pi", "server"]
+
+[project.optional-dependencies]
+test = [
+    "coverage",
+    "pytest"
+]
+raspi = [
+    "RPi.GPIO"
+]
+
+[project.urls]
+Repository = "https://github.com/petermuller/pi-phone-server"
+
+[tool.pytest.ini_options]
+addopts = "--junitxml=build/test_report.xml"
+
+[tool.coverage.run]
+branch = true
+command_line = "-m pytest"
+source_pkgs = [
+    "pi_phone_server"
+]
+omit = [
+    "test/*"
+]
+
+[tool.coverage.report]
+ignore_errors = false
+fail_under = 50
+format = "markdown"
+
+[tool.coverage.xml]
+output = "build/coverage.xml"
+
+[tool.coverage.html]
+directory = "build/coverage_html_report"
