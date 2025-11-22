@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pi-phone-server"
-version = "3.1.0"
+version = "3.1.1"
 dependencies = [
     "click",
     "flask",
-    "flask-cors"
+    "flask-cors",
+    "prometheus-client",
+    "prometheus-flask-exporter"
 ]
 requires-python = ">=3.10"
 authors = [

@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from prometheus_flask_exporter import PrometheusMetrics
 
 from pi_phone_server.exception.exceptions import InvalidOperationError, InvalidPinError
 from pi_phone_server.server.pin_operations.pin_operations import pin_bp
@@ -7,6 +8,7 @@ from pi_phone_server.server.pin_operations.pin_operations import pin_bp
 
 app = Flask(__name__)
 CORS(app)
+PrometheusMetrics(app)
 app.register_blueprint(pin_bp, url_prefix="/v1")
 
 

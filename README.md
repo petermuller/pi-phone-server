@@ -29,7 +29,12 @@ coverage xml  # JUnit reporting
 coverage html  # HTML reporting
 ```
 
-## Version 3.1.0
+## Changelog
+
+### Version 3.1.1
+* Added Prometheus metrics for request metrics and tracking pin state
+
+### Version 3.1.0
 This is the third rewrite of this server, but this should be the easiest to interact with.
 Main features for this version are:
 * REST API built on Flask
