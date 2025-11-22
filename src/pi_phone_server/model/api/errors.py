@@ -1,12 +1,9 @@
-from fastapi.responses import JSONResponse
+from dataclasses import dataclass
 
 
-class InvalidInputError(JSONResponse):
+@dataclass
+class InvalidInputError:
+    error: str
 
     def __init__(self, exc: Exception):
-        super().__init__(
-            status_code=400,
-            content={
-                "error": str(exc)
-            }
-        )
+        self.error = str(exc)

@@ -3,8 +3,6 @@ import pytest
 from typing import Any, Type, Dict, Optional
 
 from pi_phone_server.model.api.datatypes import (
-    PinModelBase,
-    PinResponseBase,
     PinSummaryResponse,
     SetPinModeRequest,
     PinModeResponse,
@@ -23,12 +21,6 @@ class TestDatatypes:
             cls(**cls_params)
         except:
             pytest.fail(f"Failed to create object of class {cls.__name__}")
-
-    def test_create_pin_model_base(self):
-        self.assert_object_creation(PinModelBase)
-
-    def test_create_pin_response_base(self):
-        self.assert_object_creation(PinResponseBase, {"pin_id": 0})
 
     def test_create_pin_summary_response(self):
         self.assert_object_creation(PinSummaryResponse, {

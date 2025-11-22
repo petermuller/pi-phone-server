@@ -29,9 +29,10 @@ coverage xml  # JUnit reporting
 coverage html  # HTML reporting
 ```
 
-## Version 3
+## Version 3.1.0
 This is the third rewrite of this server, but this should be the easiest to interact with.
 Main features for this version are:
-* FastAPI usage instead of Flask
-  * This allows for OpenAPI clients to interact with the server
+* REST API built on Flask
+  * Removed FastAPI dependency as pydantic does not support armv61 architectures
+* Unit and integ tests
 * Cleaner code

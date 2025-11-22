@@ -1,53 +1,84 @@
 import platform
 
-from fastapi import APIRouter
+from flask import Blueprint, request, jsonify
 from pi_phone_server.model.api.datatypes import *
 from pi_phone_server.model.controller.board import Board
+from pi_phone_server.model.controller.pin import PinMode, Voltage
 
 
-pin_router = APIRouter()
+pin_bp = Blueprint("pins", __name__)
 board = Board(is_pi=platform.machine().startswith("arm"))
 
 
-@pin_router.get("/{pin_id}")
-async def get_pin_info(pin_id: int) -> PinSummaryResponse:
+def _mode_to_int(mode: PinMode) -> int:
+    return int(mode)
+
+
+def _voltage_to_int(voltage: Voltage) -> int:
+    return int(voltage)
+
+
+@pin_bp.get("/<int:pin_id>")
+def get_pin_info(pin_id: int):
     summary = board.pin(pin_id).get_summary()
-    return PinSummaryResponse(
-        pin_id=pin_id,
-        mode=summary.mode,
-        voltage=summary.voltage
-    )
+    return jsonify({
+        "pin_id": pin_id,
+        "mode": _mode_to_int(summary.mode),
+        "voltage": _voltage_to_int(summary.voltage)
+    }), 200
 
 
-@pin_router.get("/{pin_id}/mode")
-async def get_pin_mode(pin_id: int) -> PinModeResponse:
-    return PinModeResponse(
-        pin_id=pin_id,
-        mode=board.pin(pin_id).mode
-    )
+@pin_bp.get("/<int:pin_id>/mode")
+def get_pin_mode(pin_id: int):
+    pin = board.pin(pin_id)
+    return jsonify({
+        "pin_id": pin_id,
+        "mode": _mode_to_int(pin.mode)
+    }), 200
 
 
-@pin_router.post("/{pin_id}/mode")
-async def set_pin_mode(pin_id: int, request: SetPinModeRequest) -> PinModeResponse:
-    board.pin(pin_id).mode = request.mode
-    return PinModeResponse(
-        pin_id=pin_id,
-        mode=board.pin(pin_id).mode
-    )
+@pin_bp.post("/<int:pin_id>/mode")
+def set_pin_mode(pin_id: int):
+    data = request.get_json()
+    if not data or "mode" not in data:
+        return jsonify({"error": "mode is required"}), 400
+
+    try:
+        mode = PinMode(data["mode"])
+    except (ValueError, KeyError):
+        return jsonify({"error": "Invalid mode"}), 400
+
+    pin = board.pin(pin_id)
+    pin.mode = mode
+    return jsonify({
+        "pin_id": pin_id,
+        "mode": _mode_to_int(pin.mode)
+    }), 200
 
 
-@pin_router.get("/{pin_id}/voltage")
-async def get_pin_voltage(pin_id: int) -> PinVoltageResponse:
-    return PinVoltageResponse(
-        pin_id=pin_id,
-        voltage=board.pin(pin_id).voltage
-    )
+@pin_bp.get("/<int:pin_id>/voltage")
+def get_pin_voltage(pin_id: int):
+    pin = board.pin(pin_id)
+    return jsonify({
+        "pin_id": pin_id,
+        "voltage": _voltage_to_int(pin.voltage)
+    }), 200
 
 
-@pin_router.post("/{pin_id}/voltage")
-async def set_pin_voltage(pin_id: int, request: SetPinVoltageRequest) -> PinVoltageResponse:
-    board.pin(pin_id).voltage = request.voltage
-    return PinVoltageResponse(
-        pin_id=pin_id,
-        voltage=board.pin(pin_id).voltage
-    )
+@pin_bp.post("/<int:pin_id>/voltage")
+def set_pin_voltage(pin_id: int):
+    data = request.get_json()
+    if not data or "voltage" not in data:
+        return jsonify({"error": "voltage is required"}), 400
+
+    try:
+        voltage = Voltage(data["voltage"])
+    except (ValueError, KeyError):
+        return jsonify({"error": "Invalid voltage"}), 400
+
+    pin = board.pin(pin_id)
+    pin.voltage = voltage
+    return jsonify({
+        "pin_id": pin_id,
+        "voltage": _voltage_to_int(pin.voltage)
+    }), 200
